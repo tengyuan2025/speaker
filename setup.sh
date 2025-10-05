@@ -27,8 +27,13 @@ pip install -i https://mirrors.aliyun.com/pypi/simple/ torch torchaudio numpy fl
 # 按照官方文档安装modelscope (处理PyArrow兼容性)
 echo "=== 安装modelscope (官方方式，处理Python 3.13兼容性) ==="
 
-# 对于 Python 3.13，需要更谨慎的依赖管理
-if [[ "$PYTHON_VERSION" > "3.10" ]]; then
+# 对于不同 Python 版本安装兼容依赖
+if [[ "$PYTHON_VERSION" == "3.8" ]]; then
+    echo "为 Python 3.8 安装兼容版本..."
+    # Python 3.8 需要额外的兼容包
+    pip install -i https://mirrors.aliyun.com/pypi/simple/ backports.zoneinfo  # zoneinfo 兼容包
+    pip install -i https://mirrors.aliyun.com/pypi/simple/ pyarrow==12.0.0
+elif [[ "$PYTHON_VERSION" > "3.10" ]]; then
     echo "为 Python $PYTHON_VERSION 安装兼容版本..."
     # 先清理可能冲突的包
     pip uninstall -y pyarrow datasets transformers tokenizers huggingface-hub 2>/dev/null || true
@@ -39,7 +44,7 @@ if [[ "$PYTHON_VERSION" > "3.10" ]]; then
     pip install -i https://mirrors.aliyun.com/pypi/simple/ transformers==4.30.0
     pip install -i https://mirrors.aliyun.com/pypi/simple/ tokenizers==0.13.3
 else
-    # Python <= 3.10 使用官方推荐版本
+    # Python 3.9-3.10 使用官方推荐版本
     pip install -i https://mirrors.aliyun.com/pypi/simple/ pyarrow==20.0.0
 fi
 
