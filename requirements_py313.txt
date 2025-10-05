@@ -1,0 +1,33 @@
+# Requirements for Python 3.13 compatibility
+# Core dependencies
+flask==3.0.0
+flask-cors==4.0.0
+requests==2.31.0
+werkzeug==3.0.1
+
+# Audio processing
+numpy>=1.24.0
+torch>=2.0.0
+torchaudio>=2.0.0
+librosa>=0.10.0
+soundfile>=0.12.0
+
+# ModelScope and dependencies
+modelscope>=1.9.0
+addict>=2.4.0
+datasets>=2.14.0
+
+# Audio features
+scipy>=1.11.0
+
+# Optional: For better performance
+# numba>=0.58.0  # May have compatibility issues with Python 3.13
+
+# Alternative lightweight dependencies for troubleshooting
+# If modelscope has issues, these are the core requirements:
+# torch
+# torchaudio
+# numpy
+# flask
+# flask-cors
+# requests
