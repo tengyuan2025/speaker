@@ -20,10 +20,11 @@ echo "=== 安装AI相关依赖 ==="
 
 # 先卸载可能存在的冲突版本
 echo "清理可能冲突的包..."
-pip uninstall -y tokenizers transformers huggingface-hub
+pip uninstall -y tokenizers transformers huggingface-hub pyarrow
 
 # 安装兼容的版本组合
-echo "安装兼容版本的transformers生态..."
+echo "安装兼容版本的AI生态..."
+pip install -i https://mirrors.aliyun.com/pypi/simple/ pyarrow==12.0.0  # 兼容datasets的版本
 pip install -i https://mirrors.aliyun.com/pypi/simple/ tokenizers==0.12.1  # transformers兼容版本
 pip install -i https://mirrors.aliyun.com/pypi/simple/ transformers==4.21.0  # 稳定版本
 pip install -i https://mirrors.aliyun.com/pypi/simple/ huggingface-hub==0.10.0  # 兼容版本
