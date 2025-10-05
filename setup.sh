@@ -46,6 +46,22 @@ fi
 # 然后安装modelscope
 pip install -i https://mirrors.aliyun.com/pypi/simple/ modelscope
 
+# 修复 Python 3.8 类型注解兼容性问题
+echo "=== 修复 Python 3.8 兼容性 ==="
+TORCH_UTILS_FILE=$(find $CONDA_PREFIX -name "torch_utils.py" -path "*/modelscope/*" 2>/dev/null | head -1)
+if [ -n "$TORCH_UTILS_FILE" ]; then
+    echo "修复文件: $TORCH_UTILS_FILE"
+    # 备份原文件
+    cp "$TORCH_UTILS_FILE" "$TORCH_UTILS_FILE.backup"
+    # 修复类型注解
+    sed -i 's/list\[int\]/List[int]/g' "$TORCH_UTILS_FILE"
+    sed -i 's/dict\[str, Any\]/Dict[str, Any]/g' "$TORCH_UTILS_FILE"
+    sed -i '1i from typing import List, Dict, Tuple, Any' "$TORCH_UTILS_FILE"
+    echo "✅ Python 3.8 兼容性修复完成"
+else
+    echo "未找到需要修复的文件"
+fi
+
 # 检查模型目录
 MODEL_DIR="pretrained/iic/speech_campplus_sv_zh-cn_16k-common"
 if [ ! -d "$MODEL_DIR" ]; then
