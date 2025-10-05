@@ -50,8 +50,20 @@ else
     pip install -i https://mirrors.aliyun.com/pypi/simple/ pyarrow==20.0.0
 fi
 
-# 然后安装modelscope
-pip install -i https://mirrors.aliyun.com/pypi/simple/ modelscope
+# 先安装兼容的 ModelScope 依赖，避免自动安装不兼容版本
+echo "=== 强制安装兼容版本的依赖 ==="
+pip uninstall -y datasets transformers tokenizers huggingface-hub 2>/dev/null || true
+
+# 安装 ModelScope 需要但兼容 Python 3.8 的版本
+pip install -i https://mirrors.aliyun.com/pypi/simple/ "datasets<2.15.0,>=2.12.0"
+pip install -i https://mirrors.aliyun.com/pypi/simple/ "transformers<5.0.0,>=4.21.0"
+pip install -i https://mirrors.aliyun.com/pypi/simple/ "tokenizers<0.14.0,>=0.11.0"
+
+# 最后安装 modelscope，使用 --no-deps 避免覆盖我们的版本选择
+pip install -i https://mirrors.aliyun.com/pypi/simple/ modelscope --no-deps
+
+# 安装 modelscope 的其他必要依赖
+pip install -i https://mirrors.aliyun.com/pypi/simple/ addict pyyaml requests tqdm packaging filelock typing-extensions
 
 # 修复 Python 3.8 兼容性问题
 echo "=== 修复 Python 3.8 兼容性 ==="
