@@ -15,24 +15,9 @@ echo "=== 安装依赖 ==="
 # 使用阿里云镜像加速安装
 pip install -i https://mirrors.aliyun.com/pypi/simple/ torch torchaudio numpy flask flask-cors requests werkzeug addict scipy librosa soundfile
 
-# 安装兼容版本的依赖
-echo "=== 安装AI相关依赖 ==="
-
-# 先卸载可能存在的冲突版本
-echo "清理可能冲突的包..."
-pip uninstall -y tokenizers transformers huggingface-hub pyarrow datasets
-
-# 简化安装策略：只安装核心依赖，让modelscope处理其余部分
-echo "安装核心依赖..."
-pip install -i https://mirrors.aliyun.com/pypi/simple/ pyyaml tqdm packaging filelock typing-extensions requests
-
-# 尝试安装兼容版本的核心AI包
-echo "=== 安装AI核心包 ==="
-# 直接安装modelscope，让它自动处理依赖
-pip install -i https://mirrors.aliyun.com/pypi/simple/ modelscope --no-deps
-
-# 手动安装modelscope的最小必要依赖
-pip install -i https://mirrors.aliyun.com/pypi/simple/ addict
+# 按照官方文档安装modelscope
+echo "=== 安装modelscope (官方方式) ==="
+pip install -i https://mirrors.aliyun.com/pypi/simple/ modelscope
 
 # 检查模型目录
 MODEL_DIR="pretrained/iic/speech_campplus_sv_zh-cn_16k-common"
