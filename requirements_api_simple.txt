@@ -1,0 +1,10 @@
+flask==3.0.0
+flask-cors==4.0.0
+requests==2.31.0
+werkzeug==3.0.1
+numpy
+torch>=1.12.0
+torchaudio>=0.12.0
+scipy
+librosa
+soundfile
