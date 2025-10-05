@@ -55,7 +55,7 @@ echo "=== 强制安装兼容版本的依赖 ==="
 pip uninstall -y datasets transformers tokenizers huggingface-hub 2>/dev/null || true
 
 # 安装经过测试的兼容版本组合
-pip install -i https://mirrors.aliyun.com/pypi/simple/ datasets==2.12.0
+pip install -i https://mirrors.aliyun.com/pypi/simple/ datasets==2.20.0  # 确保包含 LargeList
 pip install -i https://mirrors.aliyun.com/pypi/simple/ tokenizers==0.12.1  # transformers 4.21.3 需要 <0.13
 pip install -i https://mirrors.aliyun.com/pypi/simple/ transformers==4.21.3  # 兼容 tokenizers 0.12.x
 
