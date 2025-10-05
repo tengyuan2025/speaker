@@ -20,22 +20,19 @@ echo "=== 安装AI相关依赖 ==="
 
 # 先卸载可能存在的冲突版本
 echo "清理可能冲突的包..."
-pip uninstall -y tokenizers transformers huggingface-hub pyarrow
+pip uninstall -y tokenizers transformers huggingface-hub pyarrow datasets
 
-# 安装兼容的版本组合
-echo "安装兼容版本的AI生态..."
-pip install -i https://mirrors.aliyun.com/pypi/simple/ pyarrow==12.0.0  # 兼容datasets的版本
-pip install -i https://mirrors.aliyun.com/pypi/simple/ tokenizers==0.12.1  # transformers兼容版本
-pip install -i https://mirrors.aliyun.com/pypi/simple/ transformers==4.21.0  # 稳定版本
-pip install -i https://mirrors.aliyun.com/pypi/simple/ huggingface-hub==0.10.0  # 兼容版本
+# 简化安装策略：只安装核心依赖，让modelscope处理其余部分
+echo "安装核心依赖..."
+pip install -i https://mirrors.aliyun.com/pypi/simple/ pyyaml tqdm packaging filelock typing-extensions requests
 
-# 安装其他依赖
-pip install -i https://mirrors.aliyun.com/pypi/simple/ datasets==2.14.0  # 兼容版本，避免与modelscope冲突
-pip install -i https://mirrors.aliyun.com/pypi/simple/ pyyaml tqdm packaging filelock typing-extensions
+# 尝试安装兼容版本的核心AI包
+echo "=== 安装AI核心包 ==="
+# 直接安装modelscope，让它自动处理依赖
+pip install -i https://mirrors.aliyun.com/pypi/simple/ modelscope --no-deps
 
-# 最后安装modelscope
-echo "=== 安装modelscope ==="
-pip install -i https://mirrors.aliyun.com/pypi/simple/ modelscope
+# 手动安装modelscope的最小必要依赖
+pip install -i https://mirrors.aliyun.com/pypi/simple/ addict
 
 # 检查模型目录
 MODEL_DIR="pretrained/iic/speech_campplus_sv_zh-cn_16k-common"
