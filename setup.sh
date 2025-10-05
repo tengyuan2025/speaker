@@ -15,18 +15,26 @@ echo "=== 安装依赖 ==="
 # 使用阿里云镜像加速安装
 pip install -i https://mirrors.aliyun.com/pypi/simple/ torch torchaudio numpy flask flask-cors requests werkzeug addict scipy librosa soundfile
 
-# 安装兼容版本的依赖 (跳过容易编译失败的包)
+# 安装兼容版本的依赖
 echo "=== 安装AI相关依赖 ==="
+
+# 先卸载可能存在的冲突版本
+echo "清理可能冲突的包..."
+pip uninstall -y tokenizers transformers huggingface-hub
+
+# 安装兼容的版本组合
+echo "安装兼容版本的transformers生态..."
+pip install -i https://mirrors.aliyun.com/pypi/simple/ tokenizers==0.12.1  # transformers兼容版本
+pip install -i https://mirrors.aliyun.com/pypi/simple/ transformers==4.21.0  # 稳定版本
+pip install -i https://mirrors.aliyun.com/pypi/simple/ huggingface-hub==0.10.0  # 兼容版本
+
+# 安装其他依赖
 pip install -i https://mirrors.aliyun.com/pypi/simple/ datasets==2.14.0  # 兼容版本，避免与modelscope冲突
+pip install -i https://mirrors.aliyun.com/pypi/simple/ pyyaml tqdm packaging filelock typing-extensions
 
-# 先尝试安装modelscope，它会自动处理transformers依赖
+# 最后安装modelscope
 echo "=== 安装modelscope ==="
-pip install -i https://mirrors.aliyun.com/pypi/simple/ modelscope --no-deps
-
-# 安装modelscope的必要依赖，但跳过有问题的包
-echo "=== 安装必要依赖 ==="
-pip install -i https://mirrors.aliyun.com/pypi/simple/ pyyaml tqdm requests packaging filelock typing-extensions
-pip install -i https://mirrors.aliyun.com/pypi/simple/ huggingface-hub --no-deps
+pip install -i https://mirrors.aliyun.com/pypi/simple/ modelscope
 
 # 检查模型目录
 MODEL_DIR="pretrained/iic/speech_campplus_sv_zh-cn_16k-common"
