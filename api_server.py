@@ -12,6 +12,16 @@ from flask_cors import CORS
 import numpy as np
 import torch
 import torchaudio
+
+# 修复 pyarrow 兼容性问题
+try:
+    import pyarrow as pa
+    if not hasattr(pa, 'PyExtensionType'):
+        # 为缺失的 PyExtensionType 创建一个替代
+        pa.PyExtensionType = pa.ExtensionType
+except ImportError:
+    pass
+
 from modelscope.pipelines import pipeline
 from modelscope.utils.constant import Tasks
 import logging
