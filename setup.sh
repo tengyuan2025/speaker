@@ -52,11 +52,22 @@ TORCH_UTILS_FILE=$(find $CONDA_PREFIX -name "torch_utils.py" -path "*/modelscope
 if [ -n "$TORCH_UTILS_FILE" ]; then
     echo "修复文件: $TORCH_UTILS_FILE"
     # 备份原文件
-    cp "$TORCH_UTILS_FILE" "$TORCH_UTILS_FILE.backup"
-    # 修复类型注解
+    cp "$TORCH_UTILS_FILE" "$TORCH_UTILS_FILE.backup" 2>/dev/null || true
+
+    # 修复所有类型注解
     sed -i 's/list\[int\]/List[int]/g' "$TORCH_UTILS_FILE"
+    sed -i 's/list\[str\]/List[str]/g' "$TORCH_UTILS_FILE"
     sed -i 's/dict\[str, Any\]/Dict[str, Any]/g' "$TORCH_UTILS_FILE"
-    sed -i '1i from typing import List, Dict, Tuple, Any' "$TORCH_UTILS_FILE"
+    sed -i 's/dict\[str, int\]/Dict[str, int]/g' "$TORCH_UTILS_FILE"
+    sed -i 's/tuple\[set\[int\], torch\.Tensor\]/Tuple[Set[int], torch.Tensor]/g' "$TORCH_UTILS_FILE"
+    sed -i 's/set\[int\]/Set[int]/g' "$TORCH_UTILS_FILE"
+    sed -i 's/tuple\[/Tuple[/g' "$TORCH_UTILS_FILE"
+
+    # 添加必要的导入（如果还没有）
+    if ! grep -q "from typing import.*Set" "$TORCH_UTILS_FILE"; then
+        sed -i '1i from typing import List, Dict, Tuple, Any, Set' "$TORCH_UTILS_FILE"
+    fi
+
     echo "✅ Python 3.8 兼容性修复完成"
 else
     echo "未找到需要修复的文件"
