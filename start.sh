@@ -9,17 +9,25 @@ if [ ! -d "$MODEL_DIR" ]; then
     exit 1
 fi
 
-# 检查端口占用
-PORT=5002
-if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null ; then
-    echo "⚠️  端口 $PORT 已被占用，尝试使用端口 5001"
-    PORT=5001
-fi
+# 检查 lsof 命令是否存在
+if ! command -v lsof &> /dev/null; then
+    echo "⚠️  lsof 命令未找到，无法检查端口占用"
+    echo "建议安装 lsof: yum install lsof 或 apt-get install lsof"
+    echo "继续启动服务..."
+    PORT=5002
+else
+    # 检查端口占用
+    PORT=5002
+    if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null ; then
+        echo "⚠️  端口 $PORT 已被占用，尝试使用端口 5001"
+        PORT=5001
+    fi
 
-if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null ; then
-    echo "⚠️  端口 $PORT 也被占用，请手动指定端口"
-    echo "使用方法: python api_server.py --port YOUR_PORT"
-    exit 1
+    if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null ; then
+        echo "⚠️  端口 $PORT 也被占用，请手动指定端口"
+        echo "使用方法: python api_server.py --port YOUR_PORT"
+        exit 1
+    fi
 fi
 
 echo "=== 启动服务 ==="

@@ -12,7 +12,11 @@ python -m pip install --upgrade pip
 
 # 安装依赖
 echo "=== 安装依赖 ==="
-pip install torch torchaudio numpy flask flask-cors requests werkzeug addict modelscope datasets scipy librosa soundfile
+# 安装兼容版本的依赖
+pip install torch torchaudio numpy flask flask-cors requests werkzeug addict scipy librosa soundfile
+pip install datasets==2.14.0  # 兼容版本，避免与modelscope冲突
+pip install transformers==4.35.0  # 兼容版本
+pip install modelscope
 
 # 检查模型目录
 MODEL_DIR="pretrained/iic/speech_campplus_sv_zh-cn_16k-common"
