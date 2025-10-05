@@ -84,8 +84,30 @@ if [ -n "$UTILS_FILE" ]; then
     echo "修复 zoneinfo 导入: $UTILS_FILE"
     cp "$UTILS_FILE" "$UTILS_FILE.backup" 2>/dev/null || true
 
-    # 替换 zoneinfo 导入为兼容性导入
-    sed -i 's/import zoneinfo/try:\n    import zoneinfo\nexcept ImportError:\n    from backports import zoneinfo/g' "$UTILS_FILE"
+    # 创建正确的替换内容
+    cat > /tmp/zoneinfo_fix.py << 'EOF'
+try:
+    import zoneinfo
+except ImportError:
+    from backports import zoneinfo
+EOF
+
+    # 替换 import zoneinfo 行
+    python3 -c "
+import re
+with open('$UTILS_FILE', 'r') as f:
+    content = f.read()
+
+# 替换 import zoneinfo
+with open('/tmp/zoneinfo_fix.py', 'r') as f:
+    replacement = f.read().strip()
+
+content = re.sub(r'^import zoneinfo$', replacement, content, flags=re.MULTILINE)
+
+with open('$UTILS_FILE', 'w') as f:
+    f.write(content)
+"
+    rm -f /tmp/zoneinfo_fix.py
 fi
 
 echo "✅ Python 3.8 兼容性修复完成"
