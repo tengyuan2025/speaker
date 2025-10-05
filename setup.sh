@@ -15,14 +15,18 @@ echo "=== 安装依赖 ==="
 # 使用阿里云镜像加速安装
 pip install -i https://mirrors.aliyun.com/pypi/simple/ torch torchaudio numpy flask flask-cors requests werkzeug addict scipy librosa soundfile
 
-# 优先安装预编译的tokenizers版本
+# 优先安装预编译的tokenizers版本 (使用官方源确保有预编译包)
 echo "=== 安装tokenizers (预编译版本) ==="
-pip install -i https://mirrors.aliyun.com/pypi/simple/ tokenizers==0.14.1 --only-binary=all
+pip install tokenizers==0.14.1 --only-binary=all || {
+    echo "⚠️  预编译版本失败，尝试跳过tokenizers..."
+    echo "将在transformers安装时自动处理"
+}
 
 # 安装兼容版本的依赖
 echo "=== 安装AI相关依赖 ==="
 pip install -i https://mirrors.aliyun.com/pypi/simple/ datasets==2.14.0  # 兼容版本，避免与modelscope冲突
-pip install -i https://mirrors.aliyun.com/pypi/simple/ transformers==4.35.0 --no-deps  # 兼容版本，跳过依赖检查
+# 使用更老的transformers版本避免tokenizers编译问题
+pip install -i https://mirrors.aliyun.com/pypi/simple/ transformers==4.21.0  # 更稳定的版本
 pip install -i https://mirrors.aliyun.com/pypi/simple/ modelscope
 
 # 检查模型目录
