@@ -54,10 +54,10 @@ fi
 echo "=== 强制安装兼容版本的依赖 ==="
 pip uninstall -y datasets transformers tokenizers huggingface-hub 2>/dev/null || true
 
-# 安装 ModelScope 需要但兼容 Python 3.8 的版本
-pip install -i https://mirrors.aliyun.com/pypi/simple/ "datasets<2.15.0,>=2.12.0"
-pip install -i https://mirrors.aliyun.com/pypi/simple/ "transformers<5.0.0,>=4.21.0"
-pip install -i https://mirrors.aliyun.com/pypi/simple/ "tokenizers<0.14.0,>=0.11.0"
+# 安装经过测试的兼容版本组合
+pip install -i https://mirrors.aliyun.com/pypi/simple/ datasets==2.12.0
+pip install -i https://mirrors.aliyun.com/pypi/simple/ transformers==4.21.3  # 兼容 tokenizers 0.13.x
+pip install -i https://mirrors.aliyun.com/pypi/simple/ tokenizers==0.13.3
 
 # 最后安装 modelscope，使用 --no-deps 避免覆盖我们的版本选择
 pip install -i https://mirrors.aliyun.com/pypi/simple/ modelscope --no-deps
