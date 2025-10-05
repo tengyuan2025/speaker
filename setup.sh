@@ -33,6 +33,8 @@ if [[ "$PYTHON_VERSION" == "3.8" ]]; then
     # Python 3.8 需要额外的兼容包
     pip install -i https://mirrors.aliyun.com/pypi/simple/ backports.zoneinfo  # zoneinfo 兼容包
     pip install -i https://mirrors.aliyun.com/pypi/simple/ pyarrow==12.0.0
+    # 安装兼容的 datasets 版本
+    pip install -i https://mirrors.aliyun.com/pypi/simple/ datasets==2.12.0  # 兼容版本，有 LargeList
 elif [[ "$PYTHON_VERSION" > "3.10" ]]; then
     echo "为 Python $PYTHON_VERSION 安装兼容版本..."
     # 先清理可能冲突的包
