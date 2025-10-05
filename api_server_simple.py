@@ -85,11 +85,42 @@ def init_model(model_path=None):
             model = model_class(**model_config['args'])
 
             # Load checkpoint if provided
-            if model_path and os.path.exists(model_path):
-                logger.info(f"Loading checkpoint from {model_path}")
-                checkpoint = torch.load(model_path, map_location='cpu')
-                model.load_state_dict(checkpoint)
-                app.config['MODEL_PATH'] = model_path
+            if model_path:
+                # If it's a directory, look for model files
+                if os.path.isdir(model_path):
+                    possible_files = [
+                        'campplus_cn_common.bin',
+                        'campplus_cn_common.pt',
+                        'model.pt',
+                        'model.bin',
+                        'pytorch_model.bin'
+                    ]
+                    for fname in possible_files:
+                        full_path = os.path.join(model_path, fname)
+                        if os.path.exists(full_path):
+                            model_path = full_path
+                            break
+
+                if os.path.exists(model_path):
+                    logger.info(f"Loading checkpoint from {model_path}")
+                    checkpoint = torch.load(model_path, map_location='cpu')
+
+                    # Handle different checkpoint formats
+                    if isinstance(checkpoint, dict):
+                        if 'model' in checkpoint:
+                            model.load_state_dict(checkpoint['model'])
+                        elif 'state_dict' in checkpoint:
+                            model.load_state_dict(checkpoint['state_dict'])
+                        elif 'model_state_dict' in checkpoint:
+                            model.load_state_dict(checkpoint['model_state_dict'])
+                        else:
+                            # Assume the checkpoint is the state_dict directly
+                            model.load_state_dict(checkpoint)
+                    else:
+                        # If checkpoint is not a dict, assume it's the state_dict
+                        model.load_state_dict(checkpoint)
+
+                    app.config['MODEL_PATH'] = model_path
             else:
                 logger.warning("No model checkpoint provided. Using random initialized model.")
                 logger.warning("Please download a pretrained model or provide a checkpoint path.")

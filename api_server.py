@@ -7,7 +7,7 @@ import time
 import tempfile
 import hashlib
 from pathlib import Path
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory, render_template_string
 from flask_cors import CORS
 import numpy as np
 import torch
@@ -430,6 +430,48 @@ def config():
             'threshold': app.config['THRESHOLD']
         }})
 
+@app.route('/')
+def index():
+    """提供测试页面"""
+    try:
+        with open('test.html', 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        # 将API地址设置为当前服务器地址（使用JavaScript动态获取，避免CORS问题）
+        html_content = html_content.replace(
+            "let currentApiUrl = 'http://localhost:5002';",
+            "let currentApiUrl = window.location.origin;"
+        )
+        # 修复输入框中的默认值
+        html_content = html_content.replace(
+            'value="http://localhost:5002"',
+            'value=""'
+        )
+        # 在页面加载时设置正确的API地址
+        html_content = html_content.replace(
+            "document.addEventListener('DOMContentLoaded', function() {",
+            """document.addEventListener('DOMContentLoaded', function() {
+            // 设置API地址输入框的值
+            document.getElementById('apiUrl').value = window.location.origin;"""
+        )
+        return html_content
+    except FileNotFoundError:
+        return '''
+        <h1>Speaker Verification API</h1>
+        <p>API服务正在运行</p>
+        <p>测试页面未找到，请确保 test.html 文件存在</p>
+        <h2>API接口:</h2>
+        <ul>
+            <li><a href="/health">/health</a> - 健康检查</li>
+            <li>POST /verify - 说话人验证</li>
+            <li>POST /extract_embedding - 特征提取</li>
+        </ul>
+        '''
+
+@app.route('/test.html')
+def test_page():
+    """提供测试页面的别名"""
+    return index()
+
 if __name__ == '__main__':
     # 启动时预加载模型
     logger.info("Starting Speaker Verification API Server...")
@@ -438,7 +480,7 @@ if __name__ == '__main__':
     # 启动服务器
     app.run(
         host='0.0.0.0',
-        port=5000,
+        port=5002,
         debug=False,
         threaded=True
     )
