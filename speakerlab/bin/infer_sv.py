@@ -247,11 +247,15 @@ def main():
     pretrained_state = torch.load(pretrained_model, map_location='cpu')
 
     if torch.cuda.is_available():
-        msg = 'Using gpu for inference.'
+        msg = 'Using CUDA GPU for inference.'
         print(f'[INFO]: {msg}')
         device = torch.device('cuda')
+    elif torch.backends.mps.is_available():
+        msg = 'Using Apple MPS for inference.'
+        print(f'[INFO]: {msg}')
+        device = torch.device('mps')
     else:
-        msg = 'No cuda device is detected. Using cpu.'
+        msg = 'No GPU device is detected. Using CPU.'
         print(f'[INFO]: {msg}')
         device = torch.device('cpu')
 
