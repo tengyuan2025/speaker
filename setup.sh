@@ -15,8 +15,11 @@ echo "=== 安装依赖 ==="
 # 使用阿里云镜像加速安装
 pip install -i https://mirrors.aliyun.com/pypi/simple/ torch torchaudio numpy flask flask-cors requests werkzeug addict scipy librosa soundfile
 
-# 按照官方文档安装modelscope
+# 按照官方文档安装modelscope (处理PyArrow兼容性)
 echo "=== 安装modelscope (官方方式) ==="
+# 先固定PyArrow版本避免PyExtensionType错误
+pip install -i https://mirrors.aliyun.com/pypi/simple/ pyarrow==20.0.0
+# 然后安装modelscope
 pip install -i https://mirrors.aliyun.com/pypi/simple/ modelscope
 
 # 检查模型目录
