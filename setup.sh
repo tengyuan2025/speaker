@@ -1,188 +1,217 @@
 #!/bin/bash
+# 3D-Speaker 轻量级推理环境一键安装脚本
 
-echo "🚀 开始安装依赖和下载模型..."
+set -e
 
-# 检查 Python 版本和虚拟环境
-echo "=== 检查 Python 版本 ==="
-python --version
-echo "虚拟环境: $VIRTUAL_ENV"
+echo "========================================"
+echo "3D-Speaker 轻量级推理环境安装"
+echo "========================================"
 
-# 检查 Python 版本兼容性
-PYTHON_VERSION=$(python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-if [[ "$PYTHON_VERSION" > "3.10" ]]; then
-    echo "⚠️  警告：Python $PYTHON_VERSION 可能与某些依赖不兼容"
-    echo "   ModelScope 官方推荐 Python 3.8"
-    echo "   建议使用: conda create -n modelscope python=3.8"
+# 检查Python版本
+echo "1. 检查Python环境..."
+python_version=$(python3 --version 2>&1 | grep -Po '(?<=Python )\d+\.\d+' || echo "")
+if [[ -z "$python_version" ]]; then
+    echo "❌ Python3 未安装，请先安装Python3"
+    exit 1
 fi
+echo "   ✓ Python版本: $python_version"
 
-# 升级 pip
-echo "=== 升级 pip ==="
-python -m pip install --upgrade pip
-
-# 安装依赖
-echo "=== 安装依赖 ==="
-# 使用 CPU 版本的 PyTorch (更小，不需要 CUDA)
-pip install torch==2.0.0 torchaudio==2.0.0 --index-url https://download.pytorch.org/whl/cpu
-
-# 安装其他依赖
-pip install -i https://mirrors.aliyun.com/pypi/simple/ numpy flask flask-cors requests werkzeug addict scipy librosa soundfile
-
-# 按照官方文档安装modelscope (处理PyArrow兼容性)
-echo "=== 安装modelscope (官方方式，处理Python 3.13兼容性) ==="
-
-# 对于不同 Python 版本安装兼容依赖
-if [[ "$PYTHON_VERSION" == "3.8" ]]; then
-    echo "为 Python 3.8 安装兼容版本..."
-    # Python 3.8 需要额外的兼容包
-    pip install -i https://mirrors.aliyun.com/pypi/simple/ backports.zoneinfo  # zoneinfo 兼容包
-    # 使用预编译的 pyarrow wheel
-    pip install pyarrow==12.0.0 --only-binary :all: || {
-        echo "尝试较低版本的 pyarrow..."
-        pip install pyarrow==11.0.0 --only-binary :all:
-    }
-    # 安装兼容的 datasets 版本
-    pip install -i https://mirrors.aliyun.com/pypi/simple/ datasets==2.12.0  # 兼容版本，有 LargeList
-elif [[ "$PYTHON_VERSION" > "3.10" ]]; then
-    echo "为 Python $PYTHON_VERSION 安装兼容版本..."
-    # 先清理可能冲突的包
-    pip uninstall -y pyarrow datasets transformers tokenizers huggingface-hub 2>/dev/null || true
-
-    # 安装兼容的版本组合
-    pip install -i https://mirrors.aliyun.com/pypi/simple/ pyarrow==12.0.0  # Python 3.13 兼容
-    pip install -i https://mirrors.aliyun.com/pypi/simple/ datasets==2.14.0
-    pip install -i https://mirrors.aliyun.com/pypi/simple/ transformers==4.30.0
-    pip install -i https://mirrors.aliyun.com/pypi/simple/ tokenizers==0.13.3
+# 检查是否在conda环境中
+if [[ -n "$CONDA_DEFAULT_ENV" ]]; then
+    echo "   ✓ 当前conda环境: $CONDA_DEFAULT_ENV"
 else
-    # Python 3.9-3.10 使用官方推荐版本
-    pip install -i https://mirrors.aliyun.com/pypi/simple/ pyarrow==20.0.0
+    echo "   ⚠️  未检测到conda环境，建议使用conda环境"
 fi
 
-# 先安装兼容的 ModelScope 依赖，避免自动安装不兼容版本
-echo "=== 强制安装兼容版本的依赖 ==="
-pip uninstall -y datasets transformers tokenizers huggingface-hub 2>/dev/null || true
+# 检查pip
+if ! command -v pip &> /dev/null; then
+    echo "❌ pip 未安装，请先安装pip"
+    exit 1
+fi
 
-# 确保使用预编译的 wheel 包
-echo "=== 安装预编译依赖 (避免编译) ==="
-# 升级 pip 确保能找到 wheel 包
+echo ""
+echo "2. 升级pip..."
 pip install --upgrade pip
 
-# 使用 --only-binary :all: 强制使用 wheel
-pip install pyarrow==11.0.0 --only-binary :all:
-pip install tokenizers==0.11.6 --only-binary :all:  # 0.11.6 通常有 Python 3.8 wheel
-pip install datasets==2.14.0 --only-binary :all:
-pip install transformers==4.21.0 --only-binary :all:
+echo ""
+echo "3. 安装核心依赖..."
+pip install torch>=2.0.0 torchaudio>=2.0.0 --index-url https://download.pytorch.org/whl/cpu
 
-# 最后安装 modelscope，使用 --no-deps 避免覆盖我们的版本选择
-pip install -i https://mirrors.aliyun.com/pypi/simple/ modelscope --no-deps
+echo ""
+echo "4. 安装ModelScope和相关依赖..."
+# 按顺序安装，避免依赖冲突
+pip install addict>=2.4.0
+pip install simplejson>=3.19.0
+pip install oss2>=2.18.0
+pip install sortedcontainers>=2.4.0
+pip install yapf>=0.33.0
+pip install datasets>=2.14.0
+pip install Pillow>=9.0.0
+pip install opencv-python>=4.5.0
+pip install modelscope>=1.9.0
 
-# 安装 modelscope 的其他必要依赖
-pip install -i https://mirrors.aliyun.com/pypi/simple/ addict pyyaml requests tqdm packaging filelock typing-extensions
+echo ""
+echo "5. 安装音频处理库..."
+pip install soundfile>=0.10.3
+pip install librosa>=0.10.0
+pip install pydub>=0.25.1
+pip install scipy>=1.7.0
 
-# 修复 Python 3.8 兼容性问题
-echo "=== 修复 Python 3.8 兼容性 ==="
+echo ""
+echo "6. 安装服务器依赖..."
+pip install flask>=2.0.0
+pip install gunicorn>=20.0.0
+pip install requests>=2.28.0
 
-# 1. 修复类型注解问题
-TORCH_UTILS_FILE=$(find $CONDA_PREFIX -name "torch_utils.py" -path "*/modelscope/*" 2>/dev/null | head -1)
-if [ -n "$TORCH_UTILS_FILE" ]; then
-    echo "修复文件: $TORCH_UTILS_FILE"
-    # 备份原文件
-    cp "$TORCH_UTILS_FILE" "$TORCH_UTILS_FILE.backup" 2>/dev/null || true
+echo ""
+echo "7. 安装工具依赖..."
+pip install pyyaml>=5.4.1
+pip install tqdm>=4.61.1
+pip install filelock>=3.12.0
+pip install huggingface-hub>=0.16.0
 
-    # 修复所有类型注解
-    sed -i 's/list\[int\]/List[int]/g' "$TORCH_UTILS_FILE"
-    sed -i 's/list\[str\]/List[str]/g' "$TORCH_UTILS_FILE"
-    sed -i 's/dict\[str, Any\]/Dict[str, Any]/g' "$TORCH_UTILS_FILE"
-    sed -i 's/dict\[str, int\]/Dict[str, int]/g' "$TORCH_UTILS_FILE"
-    sed -i 's/tuple\[set\[int\], torch\.Tensor\]/Tuple[Set[int], torch.Tensor]/g' "$TORCH_UTILS_FILE"
-    sed -i 's/set\[int\]/Set[int]/g' "$TORCH_UTILS_FILE"
-    sed -i 's/tuple\[/Tuple[/g' "$TORCH_UTILS_FILE"
+echo ""
+echo "8. 安装可选依赖..."
+pip install onnxruntime>=1.16.0
 
-    # 添加必要的导入
-    if ! grep -q "from typing import.*Set" "$TORCH_UTILS_FILE"; then
-        sed -i '1i from typing import List, Dict, Tuple, Any, Set' "$TORCH_UTILS_FILE"
-    fi
-fi
+echo ""
+echo "9. 创建必要目录..."
+mkdir -p uploads
+mkdir -p models
+mkdir -p logs
+mkdir -p examples/speaker_verification
 
-# 2. 修复 zoneinfo 导入问题
-UTILS_FILE=$(find $CONDA_PREFIX -name "utils.py" -path "*/modelscope/hub/utils/*" 2>/dev/null | head -1)
-if [ -n "$UTILS_FILE" ]; then
-    echo "修复 zoneinfo 导入: $UTILS_FILE"
-    cp "$UTILS_FILE" "$UTILS_FILE.backup" 2>/dev/null || true
-
-    # 创建正确的替换内容
-    cat > /tmp/zoneinfo_fix.py << 'EOF'
+echo ""
+echo "10. 测试ModelScope导入..."
+python -c "
 try:
-    import zoneinfo
-except ImportError:
-    from backports import zoneinfo
+    from modelscope.pipelines import pipeline
+    from modelscope.utils.constant import Tasks
+    from flask import Flask
+    print('✅ 所有依赖导入成功！')
+except ImportError as e:
+    print(f'❌ 导入失败: {e}')
+    exit(1)
+" || {
+    echo ""
+    echo "❌ 依赖测试失败，尝试修复..."
+
+    # 尝试修复常见问题
+    echo "   安装缺失的依赖..."
+    pip install addict simplejson oss2 sortedcontainers yapf datasets Pillow opencv-python
+
+    # 重新测试
+    python -c "
+    try:
+        from modelscope.pipelines import pipeline
+        print('✅ 修复成功！')
+    except ImportError as e:
+        print(f'❌ 修复失败: {e}')
+        print('请手动检查依赖安装')
+        exit(1)
+    "
+}
+
+echo ""
+echo "11. 设置配置文件..."
+cat > .env << EOF
+# 3D-Speaker 服务配置
+HOST=0.0.0.0
+PORT=7001
+DEBUG=false
+
+# 模型配置
+SPEAKER_MODEL_ID=iic/speech_eres2net_sv_zh-cn_16k-common
+DEVICE=cpu
+CACHE_DIR=./models
+
+# 音频处理配置
+MAX_CONTENT_LENGTH=16777216
+MAX_AUDIO_DURATION=30
+MIN_AUDIO_DURATION=0.5
+SIMILARITY_THRESHOLD=0.5
+
+# 文件存储
+UPLOAD_FOLDER=./uploads
+
+# 生产环境配置
+WORKERS=1
+WORKER_CLASS=sync
+TIMEOUT=120
+
+# 日志配置
+LOG_LEVEL=INFO
+ACCESS_LOG=logs/access.log
+ERROR_LOG=logs/error.log
 EOF
 
-    # 替换 import zoneinfo 行
-    python3 -c "
-import re
-with open('$UTILS_FILE', 'r') as f:
-    content = f.read()
+echo "   ✓ 配置文件已创建: .env"
 
-# 替换 import zoneinfo
-with open('/tmp/zoneinfo_fix.py', 'r') as f:
-    replacement = f.read().strip()
+echo ""
+echo "12. 创建系统服务文件（可选）..."
+cat > speaker-server.service << EOF
+[Unit]
+Description=3D-Speaker Inference Server
+After=network.target
 
-content = re.sub(r'^import zoneinfo$', replacement, content, flags=re.MULTILINE)
+[Service]
+Type=simple
+User=$(whoami)
+WorkingDirectory=$(pwd)
+Environment=PYTHONPATH=$(pwd)
+ExecStart=$(which python) server.py
+Restart=always
+RestartSec=10
 
-with open('$UTILS_FILE', 'w') as f:
-    f.write(content)
-"
-    rm -f /tmp/zoneinfo_fix.py
-fi
+# 环境变量
+EnvironmentFile=$(pwd)/.env
 
-# 3. 修复 LargeList 导入问题
-HF_DATASETS_UTIL_FILE=$(find $CONDA_PREFIX -name "hf_datasets_util.py" -path "*/modelscope/msdatasets/utils/*" 2>/dev/null | head -1)
-if [ -n "$HF_DATASETS_UTIL_FILE" ]; then
-    echo "修复 LargeList 导入: $HF_DATASETS_UTIL_FILE"
-    cp "$HF_DATASETS_UTIL_FILE" "$HF_DATASETS_UTIL_FILE.backup" 2>/dev/null || true
+# 日志
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=speaker-server
 
-    # 移除有问题的 LargeList 导入
-    python3 -c "
-import re
-with open('$HF_DATASETS_UTIL_FILE', 'r') as f:
-    content = f.read()
+# 安全设置
+NoNewPrivileges=true
+PrivateTmp=true
 
-# 移除 LargeList 从 datasets 导入中
-content = re.sub(r', LargeList', '', content)
-content = re.sub(r'LargeList,', '', content)
-content = re.sub(r'LargeList', '', content)
+[Install]
+WantedBy=multi-user.target
+EOF
 
-with open('$HF_DATASETS_UTIL_FILE', 'w') as f:
-    f.write(content)
+echo "   ✓ 系统服务文件已创建: speaker-server.service"
+echo "   如需开机自启动，请运行:"
+echo "     sudo cp speaker-server.service /etc/systemd/system/"
+echo "     sudo systemctl enable speaker-server"
 
-print('已移除 LargeList 导入')
-"
-fi
-
-echo "✅ Python 3.8 兼容性修复完成"
-
-# 检查模型目录
-MODEL_DIR="pretrained/iic/speech_campplus_sv_zh-cn_16k-common"
-if [ ! -d "$MODEL_DIR" ]; then
-    echo "=== 下载模型 ==="
-    python -c "
-from modelscope import snapshot_download
-import os
-
-model_dir = 'pretrained/iic/speech_campplus_sv_zh-cn_16k-common'
-os.makedirs(os.path.dirname(model_dir), exist_ok=True)
-
-print('开始下载模型...')
-try:
-    snapshot_download('iic/speech_campplus_sv_zh-cn_16k-common', cache_dir='pretrained')
-    print('✅ 模型下载成功')
-except Exception as e:
-    print(f'❌ 模型下载失败: {e}')
-    print('请手动运行: python download_model.py')
-"
+echo ""
+echo "13. 验证安装..."
+if [[ -f "server.py" ]]; then
+    echo "   ✓ 服务器文件存在"
 else
-    echo "✅ 模型已存在"
+    echo "   ❌ 服务器文件不存在，请确保在正确目录运行"
 fi
 
-echo "🎉 安装完成！"
-echo "现在可以运行: ./start.sh 启动服务"
+if [[ -f "demo_inference.py" ]]; then
+    echo "   ✓ 演示文件存在"
+else
+    echo "   ❌ 演示文件不存在"
+fi
+
+echo ""
+echo "========================================"
+echo "✅ 安装完成！"
+echo "========================================"
+echo ""
+echo "📋 后续步骤:"
+echo "1. 启动服务:     bash start.sh"
+echo "2. 生产模式:     bash start.sh production"
+echo "3. 查看文档:     http://localhost:7001/"
+echo "4. 健康检查:     http://localhost:7001/health"
+echo "5. 测试API:      python test_api.py"
+echo ""
+echo "📁 示例音频文件放置位置: examples/speaker_verification/"
+echo "🔧 配置文件位置: .env"
+echo "📝 日志文件位置: logs/"
+echo ""
+echo "如遇问题，请查看: README_INFERENCE.md"

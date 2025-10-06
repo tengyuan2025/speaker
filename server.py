@@ -600,7 +600,7 @@ def main():
 
     # Start server
     host = os.getenv('HOST', '0.0.0.0')
-    port = int(os.getenv('PORT', 8000))
+    port = int(os.getenv('PORT', 7001))
     debug = os.getenv('DEBUG', 'false').lower() == 'true'
 
     logger.info(f"Server starting on {host}:{port}")

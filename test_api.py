@@ -7,7 +7,7 @@ import requests
 import time
 import os
 
-def test_server(base_url="http://localhost:8000"):
+def test_server(base_url="http://localhost:7001"):
     """Test the speaker verification server"""
 
     print(f"Testing server at: {base_url}")
