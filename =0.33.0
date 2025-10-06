@@ -1,0 +1,4 @@
+Looking in indexes: http://mirrors.cloud.aliyuncs.com/pypi/simple/
+Requirement already satisfied: yapf in /root/miniconda3/envs/3D-Speaker/lib/python3.8/site-packages (0.43.0)
+Requirement already satisfied: platformdirs>=3.5.1 in /root/miniconda3/envs/3D-Speaker/lib/python3.8/site-packages (from yapf) (4.3.6)
+Requirement already satisfied: tomli>=2.0.1 in /root/miniconda3/envs/3D-Speaker/lib/python3.8/site-packages (from yapf) (2.2.1)

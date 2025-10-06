@@ -11,22 +11,15 @@ ExecStart=/root/miniconda3/envs/3D-Speaker/bin/python server.py
 Restart=always
 RestartSec=10
 
-# Environment variables
-Environment=HOST=0.0.0.0
-Environment=PORT=8000
-Environment=DEVICE=cpu
-Environment=SPEAKER_MODEL_ID=iic/speech_eres2net_sv_zh-cn_16k-common
-Environment=UPLOAD_FOLDER=/tmp/speaker_uploads
-Environment=CACHE_DIR=/root/speaker/models
-Environment=MAX_CONTENT_LENGTH=16777216
-Environment=SIMILARITY_THRESHOLD=0.5
+# 环境变量
+EnvironmentFile=/root/speaker/.env
 
-# Logging
+# 日志
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=speaker-server
 
-# Security (optional)
+# 安全设置
 NoNewPrivileges=true
 PrivateTmp=true
 
