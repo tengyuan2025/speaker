@@ -21,8 +21,11 @@ python -m pip install --upgrade pip
 
 # 安装依赖
 echo "=== 安装依赖 ==="
-# 使用阿里云镜像加速安装
-pip install -i https://mirrors.aliyun.com/pypi/simple/ torch torchaudio numpy flask flask-cors requests werkzeug addict scipy librosa soundfile
+# 使用 CPU 版本的 PyTorch (更小，不需要 CUDA)
+pip install torch==2.0.0 torchaudio==2.0.0 --index-url https://download.pytorch.org/whl/cpu
+
+# 安装其他依赖
+pip install -i https://mirrors.aliyun.com/pypi/simple/ numpy flask flask-cors requests werkzeug addict scipy librosa soundfile
 
 # 按照官方文档安装modelscope (处理PyArrow兼容性)
 echo "=== 安装modelscope (官方方式，处理Python 3.13兼容性) ==="
