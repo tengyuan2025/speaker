@@ -32,7 +32,11 @@ if [[ "$PYTHON_VERSION" == "3.8" ]]; then
     echo "为 Python 3.8 安装兼容版本..."
     # Python 3.8 需要额外的兼容包
     pip install -i https://mirrors.aliyun.com/pypi/simple/ backports.zoneinfo  # zoneinfo 兼容包
-    pip install -i https://mirrors.aliyun.com/pypi/simple/ pyarrow==12.0.0
+    # 使用预编译的 pyarrow wheel
+    pip install pyarrow==12.0.0 --only-binary :all: || {
+        echo "尝试较低版本的 pyarrow..."
+        pip install pyarrow==11.0.0 --only-binary :all:
+    }
     # 安装兼容的 datasets 版本
     pip install -i https://mirrors.aliyun.com/pypi/simple/ datasets==2.12.0  # 兼容版本，有 LargeList
 elif [[ "$PYTHON_VERSION" > "3.10" ]]; then
@@ -54,14 +58,16 @@ fi
 echo "=== 强制安装兼容版本的依赖 ==="
 pip uninstall -y datasets transformers tokenizers huggingface-hub 2>/dev/null || true
 
-# 安装经过测试的兼容版本组合
-pip install -i https://mirrors.aliyun.com/pypi/simple/ datasets==2.20.0  # 确保包含 LargeList
-# 使用预编译的 wheel 包，避免编译
-pip install tokenizers==0.12.1 --only-binary :all: || {
-    echo "尝试从官方源安装预编译包..."
-    pip install tokenizers==0.12.1
-}
-pip install -i https://mirrors.aliyun.com/pypi/simple/ transformers==4.21.3  # 兼容 tokenizers 0.12.x
+# 确保使用预编译的 wheel 包
+echo "=== 安装预编译依赖 (避免编译) ==="
+# 升级 pip 确保能找到 wheel 包
+pip install --upgrade pip
+
+# 使用 --only-binary :all: 强制使用 wheel
+pip install pyarrow==11.0.0 --only-binary :all:
+pip install tokenizers==0.11.6 --only-binary :all:  # 0.11.6 通常有 Python 3.8 wheel
+pip install datasets==2.14.0 --only-binary :all:
+pip install transformers==4.21.0 --only-binary :all:
 
 # 最后安装 modelscope，使用 --no-deps 避免覆盖我们的版本选择
 pip install -i https://mirrors.aliyun.com/pypi/simple/ modelscope --no-deps
