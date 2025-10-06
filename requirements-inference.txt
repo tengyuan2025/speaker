@@ -1,0 +1,27 @@
+# Lightweight requirements for inference-only setup
+# This file contains minimal dependencies for running inference with pre-trained models
+
+# Core dependencies
+torch>=2.0.0
+torchaudio>=2.0.0
+numpy>=1.19.0
+
+# Model downloading and management
+modelscope==1.23.2
+
+# ONNX runtime for efficient inference
+onnxruntime>=1.16.0
+sherpa-onnx>=1.10.0
+
+# Audio processing
+soundfile>=0.10.3
+librosa>=0.10.0
+pydub>=0.25.1
+
+# Utilities
+pyyaml>=5.4.1
+tqdm>=4.61.1
+scipy>=1.7.0
+
+# Optional: For web demos
+gradio>=4.0.0
