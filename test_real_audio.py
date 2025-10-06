@@ -243,18 +243,21 @@ def test_verify_concurrency(server_url, audio_files, concurrent_users=3, total_r
     }
 
 def main():
-    # 音频文件目录
-    audio_dir = "/home/pi/workspace/xiaoyu-server/audio_records/2025/10/06/22/1759761683287886"
+    # 音频文件目录 - 改为当前目录下的test_audio文件夹
+    audio_dir = "./test_audio"
     server_url = "http://localhost:7001"
 
     print("🎯 3D-Speaker 真实音频并发性能测试")
     print(f"🔗 测试目标: {server_url}")
     print(f"📁 音频目录: {audio_dir}")
 
-    # 检查音频目录是否存在
+    # 检查音频目录是否存在，如果不存在则创建并提示
     if not os.path.exists(audio_dir):
-        print(f"❌ 音频目录不存在: {audio_dir}")
-        print("请确认路径是否正确")
+        print(f"📁 创建音频目录: {audio_dir}")
+        os.makedirs(audio_dir, exist_ok=True)
+        print(f"⚠️ 请将音频文件放到 {audio_dir} 目录下")
+        print(f"   例如: cp /path/to/your/audio/* {audio_dir}/")
+        print(f"   或者: 手动复制音频文件到该目录")
         return
 
     # 查找音频文件
