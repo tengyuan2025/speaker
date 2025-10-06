@@ -49,8 +49,9 @@ app.config.from_object(Config)
 os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(Config.CACHE_DIR, exist_ok=True)
 
-# Global model instance
+# Global variables
 speaker_pipeline = None
+start_time = time.time()  # Initialize start_time at module load
 
 def init_model(retry_count=3):
     """Initialize the speaker verification model with retry logic"""
