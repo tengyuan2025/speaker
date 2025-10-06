@@ -122,6 +122,30 @@ with open('$UTILS_FILE', 'w') as f:
     rm -f /tmp/zoneinfo_fix.py
 fi
 
+# 3. 修复 LargeList 导入问题
+HF_DATASETS_UTIL_FILE=$(find $CONDA_PREFIX -name "hf_datasets_util.py" -path "*/modelscope/msdatasets/utils/*" 2>/dev/null | head -1)
+if [ -n "$HF_DATASETS_UTIL_FILE" ]; then
+    echo "修复 LargeList 导入: $HF_DATASETS_UTIL_FILE"
+    cp "$HF_DATASETS_UTIL_FILE" "$HF_DATASETS_UTIL_FILE.backup" 2>/dev/null || true
+
+    # 移除有问题的 LargeList 导入
+    python3 -c "
+import re
+with open('$HF_DATASETS_UTIL_FILE', 'r') as f:
+    content = f.read()
+
+# 移除 LargeList 从 datasets 导入中
+content = re.sub(r', LargeList', '', content)
+content = re.sub(r'LargeList,', '', content)
+content = re.sub(r'LargeList', '', content)
+
+with open('$HF_DATASETS_UTIL_FILE', 'w') as f:
+    f.write(content)
+
+print('已移除 LargeList 导入')
+"
+fi
+
 echo "✅ Python 3.8 兼容性修复完成"
 
 # 检查模型目录
