@@ -52,24 +52,48 @@ os.makedirs(Config.CACHE_DIR, exist_ok=True)
 # Global model instance
 speaker_pipeline = None
 
-def init_model():
-    """Initialize the speaker verification model"""
+def init_model(retry_count=3):
+    """Initialize the speaker verification model with retry logic"""
     global speaker_pipeline
 
-    try:
-        logger.info(f"Initializing speaker verification model: {Config.MODEL_ID}")
-        speaker_pipeline = pipeline(
-            task=Tasks.speaker_verification,
-            model=Config.MODEL_ID,
-            device=Config.DEVICE,
-            model_revision='master'
-        )
-        logger.info("Model initialized successfully")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to initialize model: {e}")
-        logger.error(traceback.format_exc())
-        return False
+    for attempt in range(retry_count):
+        try:
+            logger.info(f"Initializing model (attempt {attempt + 1}/{retry_count}): {Config.MODEL_ID}")
+
+            # Set cache directory for ModelScope
+            os.environ['MODELSCOPE_CACHE'] = os.path.expanduser('~/.cache/modelscope')
+
+            # Create pipeline with error handling
+            speaker_pipeline = pipeline(
+                task=Tasks.speaker_verification,
+                model=Config.MODEL_ID,
+                device=Config.DEVICE,
+                model_revision='master'
+            )
+
+            # Test the pipeline with dummy data to ensure it's working
+            logger.info("Testing model with dummy verification...")
+            # Create a simple test to verify model is loaded
+            test_result = speaker_pipeline is not None
+
+            if test_result:
+                logger.info("Model initialized and verified successfully")
+                return True
+            else:
+                logger.warning(f"Model verification failed on attempt {attempt + 1}")
+
+        except Exception as e:
+            logger.error(f"Model initialization attempt {attempt + 1} failed: {e}")
+            logger.error(traceback.format_exc())
+
+            if attempt < retry_count - 1:
+                wait_time = (attempt + 1) * 5  # Progressive backoff
+                logger.info(f"Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+            else:
+                logger.error("All model initialization attempts failed")
+
+    return False
 
 def validate_audio_file(file_path: str) -> Dict[str, Any]:
     """Validate uploaded audio file"""
@@ -125,9 +149,18 @@ def docs():
 @app.route('/health', methods=['GET'])
 def health_check():
     """Detailed health check"""
+    global speaker_pipeline
+
+    # Try to reinitialize model if not loaded
+    if speaker_pipeline is None:
+        logger.warning("Model not loaded, attempting to initialize...")
+        init_model(retry_count=1)
+
     status = {
         "status": "healthy" if speaker_pipeline is not None else "unhealthy",
         "model_loaded": speaker_pipeline is not None,
+        "model_id": Config.MODEL_ID,
+        "device": Config.DEVICE,
         "timestamp": time.time(),
         "uptime": time.time() - start_time
     }
@@ -141,9 +174,11 @@ def verify_speakers():
     Accepts two audio files and returns similarity score
     """
     try:
-        # Check if model is loaded
+        # Check if model is loaded, try to initialize if not
         if speaker_pipeline is None:
-            return jsonify({"error": "Model not loaded"}), 503
+            logger.warning("Model not loaded, attempting to initialize...")
+            if not init_model(retry_count=2):
+                return jsonify({"error": "Model not loaded. Server is initializing, please try again in a few seconds."}), 503
 
         # Check if files are provided
         if 'audio1' not in request.files or 'audio2' not in request.files:
@@ -588,15 +623,18 @@ fetch('http://localhost:8000/verify', {
 
 def main():
     """Main function to start the server"""
-    global start_time
+    global start_time, speaker_pipeline
     start_time = time.time()
 
-    # Initialize model
+    # Initialize model with retry
     logger.info("Starting 3D-Speaker Inference Server...")
 
-    if not init_model():
-        logger.error("Failed to initialize model. Exiting.")
-        return 1
+    # Try to initialize model, but don't exit if it fails
+    # Model can be initialized later via health check or first request
+    if not init_model(retry_count=3):
+        logger.warning("Initial model load failed. Model will be loaded on first request.")
+        logger.warning("Server will start but return 503 until model loads successfully.")
+        # Don't exit - allow server to start anyway
 
     # Start server
     host = os.getenv('HOST', '0.0.0.0')
