@@ -56,7 +56,11 @@ pip uninstall -y datasets transformers tokenizers huggingface-hub 2>/dev/null ||
 
 # 安装经过测试的兼容版本组合
 pip install -i https://mirrors.aliyun.com/pypi/simple/ datasets==2.20.0  # 确保包含 LargeList
-pip install -i https://mirrors.aliyun.com/pypi/simple/ tokenizers==0.12.1  # transformers 4.21.3 需要 <0.13
+# 使用预编译的 wheel 包，避免编译
+pip install tokenizers==0.12.1 --only-binary :all: || {
+    echo "尝试从官方源安装预编译包..."
+    pip install tokenizers==0.12.1
+}
 pip install -i https://mirrors.aliyun.com/pypi/simple/ transformers==4.21.3  # 兼容 tokenizers 0.12.x
 
 # 最后安装 modelscope，使用 --no-deps 避免覆盖我们的版本选择
