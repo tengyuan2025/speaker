@@ -21,6 +21,9 @@ pip install simplejson>=3.19.0
 pip install oss2>=2.18.0
 pip install sortedcontainers>=2.4.0
 pip install yapf>=0.33.0
+pip install datasets>=2.14.0
+pip install Pillow>=9.0.0
+pip install opencv-python>=4.5.0
 pip install modelscope>=1.9.0
 
 echo ""

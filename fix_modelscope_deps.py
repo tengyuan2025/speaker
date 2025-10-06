@@ -20,6 +20,9 @@ def main():
         "oss2>=2.18.0",
         "sortedcontainers>=2.4.0",
         "yapf>=0.33.0",
+        "datasets>=2.14.0",
+        "Pillow>=9.0.0",
+        "opencv-python>=4.5.0",
         "filelock>=3.12.0",
         "huggingface-hub>=0.16.0",
     ]
