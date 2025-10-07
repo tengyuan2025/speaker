@@ -32,12 +32,71 @@ except ImportError:
     print("Error: Cannot import speakerlab modules. Make sure you're in the 3D-Speaker directory.")
     sys.exit(1)
 
-# Configure logging
+# Configure logging with both file and console output
+log_dir = Path(__file__).parent / 'logs'
+log_dir.mkdir(exist_ok=True)
+log_file = log_dir / f'api_server_{time.strftime("%Y%m%d")}.log'
+
+# Create formatters
+detailed_formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
+)
+simple_formatter = logging.Formatter(
+    '%(asctime)s - %(levelname)s - %(message)s'
+)
+
+# File handler (detailed logs)
+file_handler = logging.FileHandler(log_file)
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(detailed_formatter)
+
+# Console handler (simple logs)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(simple_formatter)
+
+# Configure root logger
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG,
+    handlers=[file_handler, console_handler]
 )
 logger = logging.getLogger(__name__)
+
+# Print log file location
+print(f"📝 日志文件: {log_file}")
+
+# Request statistics
+class RequestStats:
+    def __init__(self):
+        self.total_requests = 0
+        self.success_requests = 0
+        self.failed_requests = 0
+        self.total_time = 0.0
+        self.start_time = time.time()
+
+    def record_request(self, success: bool, duration: float):
+        self.total_requests += 1
+        if success:
+            self.success_requests += 1
+        else:
+            self.failed_requests += 1
+        self.total_time += duration
+
+    def get_stats(self):
+        uptime = time.time() - self.start_time
+        avg_time = self.total_time / self.total_requests if self.total_requests > 0 else 0
+        success_rate = self.success_requests / self.total_requests * 100 if self.total_requests > 0 else 0
+
+        return {
+            'total_requests': self.total_requests,
+            'success_requests': self.success_requests,
+            'failed_requests': self.failed_requests,
+            'success_rate': f'{success_rate:.2f}%',
+            'avg_response_time': f'{avg_time:.3f}s',
+            'uptime': f'{uptime:.0f}s'
+        }
+
+stats = RequestStats()
 
 app = Flask(__name__)
 CORS(app)  # Allow cross-origin requests

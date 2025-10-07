@@ -20,12 +20,110 @@ import numpy as np
 from modelscope.pipelines import pipeline
 from modelscope.utils.constant import Tasks
 
-# Configure logging
+# Configure logging with file and console output
+log_dir = Path(__file__).parent / 'logs'
+log_dir.mkdir(exist_ok=True)
+log_file = log_dir / f'speaker_api_{time.strftime("%Y%m%d")}.log'
+
+# Create formatters
+detailed_formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
+)
+simple_formatter = logging.Formatter(
+    '%(asctime)s - %(levelname)s - %(message)s'
+)
+
+# File handler (detailed logs)
+file_handler = logging.FileHandler(log_file)
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(detailed_formatter)
+
+# Console handler (simple logs)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(simple_formatter)
+
+# Configure root logger
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG,
+    handlers=[file_handler, console_handler]
 )
 logger = logging.getLogger(__name__)
+
+print(f"📝 日志文件: {log_file}")
+
+# Request monitoring class
+class RequestMonitor:
+    def __init__(self):
+        self.total_requests = 0
+        self.success_count = 0
+        self.error_count = 0
+        self.total_duration = 0.0
+        self.request_history = []  # 最近100条请求
+        self.max_history = 100
+
+    def log_request(self, endpoint: str, success: bool, duration: float,
+                    error: str = None, client_ip: str = None):
+        self.total_requests += 1
+        if success:
+            self.success_count += 1
+        else:
+            self.error_count += 1
+        self.total_duration += duration
+
+        # 记录到历史
+        record = {
+            'timestamp': time.time(),
+            'endpoint': endpoint,
+            'success': success,
+            'duration': duration,
+            'error': error,
+            'client_ip': client_ip
+        }
+        self.request_history.append(record)
+
+        # 保持历史记录在限制内
+        if len(self.request_history) > self.max_history:
+            self.request_history.pop(0)
+
+        # 记录日志
+        status = "✅" if success else "❌"
+        log_msg = f"{status} {endpoint} - {duration:.3f}s - IP: {client_ip}"
+        if error:
+            log_msg += f" - Error: {error}"
+        logger.info(log_msg)
+
+        # 每10个请求打印一次统计
+        if self.total_requests % 10 == 0:
+            self.print_stats()
+
+    def print_stats(self):
+        if self.total_requests == 0:
+            return
+
+        success_rate = self.success_count / self.total_requests * 100
+        avg_duration = self.total_duration / self.total_requests
+
+        logger.info("=" * 60)
+        logger.info(f"📊 API统计 - 总请求: {self.total_requests}")
+        logger.info(f"   成功: {self.success_count} | 失败: {self.error_count} | 成功率: {success_rate:.1f}%")
+        logger.info(f"   平均响应时间: {avg_duration:.3f}s")
+        logger.info("=" * 60)
+
+    def get_stats(self):
+        success_rate = self.success_count / self.total_requests * 100 if self.total_requests > 0 else 0
+        avg_duration = self.total_duration / self.total_requests if self.total_requests > 0 else 0
+
+        return {
+            'total_requests': self.total_requests,
+            'success_count': self.success_count,
+            'error_count': self.error_count,
+            'success_rate': f'{success_rate:.2f}%',
+            'avg_response_time': f'{avg_duration:.3f}s',
+            'recent_requests': self.request_history[-10:]  # 最近10条
+        }
+
+monitor = RequestMonitor()
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -163,7 +261,8 @@ def health_check():
         "model_id": Config.MODEL_ID,
         "device": Config.DEVICE,
         "timestamp": time.time(),
-        "uptime": time.time() - start_time
+        "uptime": time.time() - start_time,
+        "statistics": monitor.get_stats()
     }
 
     return jsonify(status), 200 if speaker_pipeline else 503
@@ -174,23 +273,31 @@ def verify_speakers():
     Speaker verification endpoint
     Accepts two audio files and returns similarity score
     """
+    request_start_time = time.time()
+    client_ip = request.remote_addr
+    success = False
+    error_msg = None
+
     try:
         # Check if model is loaded, try to initialize if not
         if speaker_pipeline is None:
             logger.warning("Model not loaded, attempting to initialize...")
             if not init_model(retry_count=2):
-                return jsonify({"error": "Model not loaded. Server is initializing, please try again in a few seconds."}), 503
+                error_msg = "Model not loaded. Server is initializing, please try again in a few seconds."
+                return jsonify({"error": error_msg}), 503
 
         # Check if files are provided
         if 'audio1' not in request.files or 'audio2' not in request.files:
-            return jsonify({"error": "Both 'audio1' and 'audio2' files are required"}), 400
+            error_msg = "Both 'audio1' and 'audio2' files are required"
+            return jsonify({"error": error_msg}), 400
 
         audio1_file = request.files['audio1']
         audio2_file = request.files['audio2']
 
         # Check if files are selected
         if audio1_file.filename == '' or audio2_file.filename == '':
-            return jsonify({"error": "No file selected"}), 400
+            error_msg = "No file selected"
+            return jsonify({"error": error_msg}), 400
 
         # Generate unique session ID
         session_id = str(uuid.uuid4())
@@ -209,19 +316,21 @@ def verify_speakers():
             # Validate audio files
             validation1 = validate_audio_file(filepath1)
             if not validation1["valid"]:
-                return jsonify({"error": f"Audio1: {validation1['error']}"}), 400
+                error_msg = f"Audio1: {validation1['error']}"
+                return jsonify({"error": error_msg}), 400
 
             validation2 = validate_audio_file(filepath2)
             if not validation2["valid"]:
-                return jsonify({"error": f"Audio2: {validation2['error']}"}), 400
+                error_msg = f"Audio2: {validation2['error']}"
+                return jsonify({"error": error_msg}), 400
 
             # Get threshold from request or use default
             threshold = request.form.get('threshold', Config.SIMILARITY_THRESHOLD, type=float)
 
             # Perform speaker verification
-            start_time = time.time()
+            inference_start = time.time()
             result = speaker_pipeline([filepath1, filepath2])
-            inference_time = time.time() - start_time
+            inference_time = time.time() - inference_start
 
             # Prepare response
             similarity_score = float(result['score'])
@@ -248,6 +357,7 @@ def verify_speakers():
 
             logger.info(f"Verification completed - Session: {session_id}, Score: {similarity_score:.4f}, Time: {inference_time:.3f}s")
 
+            success = True
             return jsonify(response)
 
         finally:
@@ -259,9 +369,15 @@ def verify_speakers():
                 logger.warning(f"Failed to cleanup files: {e}")
 
     except Exception as e:
+        error_msg = f"Internal server error: {str(e)}"
         logger.error(f"Verification error: {e}")
         logger.error(traceback.format_exc())
-        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+        return jsonify({"error": error_msg}), 500
+
+    finally:
+        # Record request monitoring (will execute regardless of success/failure)
+        duration = time.time() - request_start_time
+        monitor.log_request('/verify', success, duration, error_msg, client_ip)
 
 @app.route('/extract', methods=['POST'])
 def extract_embedding():
