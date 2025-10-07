@@ -223,6 +223,37 @@ def validate_audio_file(file_path: str) -> Dict[str, Any]:
     except Exception as e:
         return {"valid": False, "error": f"Invalid audio file: {str(e)}"}
 
+# Flask hooks for automatic request monitoring
+@app.before_request
+def before_request():
+    """Store request start time"""
+    from flask import g
+    g.start_time = time.time()
+
+@app.after_request
+def after_request(response):
+    """Log all requests automatically"""
+    from flask import g
+    if hasattr(g, 'start_time'):
+        duration = time.time() - g.start_time
+        endpoint = request.path
+        client_ip = request.remote_addr
+        success = response.status_code < 400
+        error_msg = None
+
+        # Try to extract error message from response
+        if not success and response.is_json:
+            try:
+                error_msg = response.get_json().get('error', f'HTTP {response.status_code}')
+            except:
+                error_msg = f'HTTP {response.status_code}'
+
+        # Only log /verify and /extract endpoints (avoid logging /health checks)
+        if endpoint in ['/verify', '/extract']:
+            monitor.log_request(endpoint, success, duration, error_msg, client_ip)
+
+    return response
+
 @app.route('/', methods=['GET'])
 def home():
     """Home page with documentation"""
@@ -273,31 +304,23 @@ def verify_speakers():
     Speaker verification endpoint
     Accepts two audio files and returns similarity score
     """
-    request_start_time = time.time()
-    client_ip = request.remote_addr
-    success = False
-    error_msg = None
-
     try:
         # Check if model is loaded, try to initialize if not
         if speaker_pipeline is None:
             logger.warning("Model not loaded, attempting to initialize...")
             if not init_model(retry_count=2):
-                error_msg = "Model not loaded. Server is initializing, please try again in a few seconds."
-                return jsonify({"error": error_msg}), 503
+                return jsonify({"error": "Model not loaded. Server is initializing, please try again in a few seconds."}), 503
 
         # Check if files are provided
         if 'audio1' not in request.files or 'audio2' not in request.files:
-            error_msg = "Both 'audio1' and 'audio2' files are required"
-            return jsonify({"error": error_msg}), 400
+            return jsonify({"error": "Both 'audio1' and 'audio2' files are required"}), 400
 
         audio1_file = request.files['audio1']
         audio2_file = request.files['audio2']
 
         # Check if files are selected
         if audio1_file.filename == '' or audio2_file.filename == '':
-            error_msg = "No file selected"
-            return jsonify({"error": error_msg}), 400
+            return jsonify({"error": "No file selected"}), 400
 
         # Generate unique session ID
         session_id = str(uuid.uuid4())
@@ -316,13 +339,11 @@ def verify_speakers():
             # Validate audio files
             validation1 = validate_audio_file(filepath1)
             if not validation1["valid"]:
-                error_msg = f"Audio1: {validation1['error']}"
-                return jsonify({"error": error_msg}), 400
+                return jsonify({"error": f"Audio1: {validation1['error']}"}), 400
 
             validation2 = validate_audio_file(filepath2)
             if not validation2["valid"]:
-                error_msg = f"Audio2: {validation2['error']}"
-                return jsonify({"error": error_msg}), 400
+                return jsonify({"error": f"Audio2: {validation2['error']}"}), 400
 
             # Get threshold from request or use default
             threshold = request.form.get('threshold', Config.SIMILARITY_THRESHOLD, type=float)
@@ -357,7 +378,6 @@ def verify_speakers():
 
             logger.info(f"Verification completed - Session: {session_id}, Score: {similarity_score:.4f}, Time: {inference_time:.3f}s")
 
-            success = True
             return jsonify(response)
 
         finally:
@@ -369,15 +389,9 @@ def verify_speakers():
                 logger.warning(f"Failed to cleanup files: {e}")
 
     except Exception as e:
-        error_msg = f"Internal server error: {str(e)}"
         logger.error(f"Verification error: {e}")
         logger.error(traceback.format_exc())
-        return jsonify({"error": error_msg}), 500
-
-    finally:
-        # Record request monitoring (will execute regardless of success/failure)
-        duration = time.time() - request_start_time
-        monitor.log_request('/verify', success, duration, error_msg, client_ip)
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 @app.route('/extract', methods=['POST'])
 def extract_embedding():
