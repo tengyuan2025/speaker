@@ -3,6 +3,16 @@
 
 set -e
 
+# 激活虚拟环境
+if [[ -d "venv" ]]; then
+    echo "🔄 激活 venv 虚拟环境..."
+    source venv/bin/activate
+elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
+    echo "🔄 使用 conda 环境: $CONDA_DEFAULT_ENV"
+else
+    echo "⚠️  未检测到虚拟环境，使用系统 Python"
+fi
+
 # 从 .env 文件加载配置（如果存在）
 if [[ -f ".env" ]]; then
     export $(cat .env | grep -v '^#' | xargs)

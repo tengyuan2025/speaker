@@ -27,7 +27,10 @@ pkill -f "python.*server.py" 2>/dev/null
 
 # Check Python environment
 echo "=== Checking Python environment ==="
-if [ -d "/root/miniconda3/envs/3D-Speaker" ]; then
+if [ -d "venv" ]; then
+    echo "Activating venv environment..."
+    source venv/bin/activate
+elif [ -d "/root/miniconda3/envs/3D-Speaker" ]; then
     echo "Activating conda environment..."
     source /root/miniconda3/bin/activate 3D-Speaker
 elif [ -d "~/miniconda3/envs/3D-Speaker" ]; then

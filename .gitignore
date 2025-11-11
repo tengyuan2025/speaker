@@ -43,4 +43,4 @@ Makefile
 *~
 **/onnx_runtime/
 **/exp/
-**/__pycache__/
+**/__pycache__/venv/
